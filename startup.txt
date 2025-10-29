@@ -1,0 +1,1 @@
+gunicorn app.backend.app:create_app --factory -k aiohttp.GunicornWebWorker --bind=0.0.0.0:8000

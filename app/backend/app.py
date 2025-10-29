@@ -1,5 +1,6 @@
 import logging
 import os
+from collections.abc import Iterable
 from pathlib import Path
 
 from aiohttp import web
@@ -13,10 +14,29 @@ from rtmt import RTMiddleTier
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("voicerag")
 
-async def create_app():
+
+def _ensure_configuration(required: Iterable[str]) -> None:
+    missing = [name for name in required if not os.environ.get(name)]
+    if missing:
+        formatted = ", ".join(sorted(missing))
+        raise RuntimeError(
+            "Missing required configuration. Please supply environment variables: "
+            f"{formatted}."
+        )
+
+def create_app():
     if not os.environ.get("RUNNING_IN_PRODUCTION"):
         logger.info("Running in development mode, loading from .env file")
         load_dotenv()
+
+    _ensure_configuration(
+        (
+            "AZURE_OPENAI_ENDPOINT",
+            "AZURE_OPENAI_REALTIME_DEPLOYMENT",
+            "AZURE_SEARCH_ENDPOINT",
+            "AZURE_SEARCH_INDEX",
+        )
+    )
 
     llm_key = os.environ.get("AZURE_OPENAI_API_KEY")
     search_key = os.environ.get("AZURE_SEARCH_API_KEY")
@@ -38,8 +58,8 @@ async def create_app():
         credentials=llm_credential,
         endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
         deployment=os.environ["AZURE_OPENAI_REALTIME_DEPLOYMENT"],
-        voice_choice=os.environ.get("AZURE_OPENAI_REALTIME_VOICE_CHOICE") or "alloy"
-        )
+        voice_choice=os.environ.get("AZURE_OPENAI_REALTIME_VOICE_CHOICE") or "alloy",
+    )
     rtmt.system_message = """
         You are a helpful assistant. Only answer questions based on information you searched in the knowledge base, accessible with the 'search' tool. 
         The user is listening to answers with audio, so it's *super* important that answers are as short as possible, a single sentence if at all possible. 

@@ -9,8 +9,8 @@ VoiceRAG is an application pattern demonstrating RAG (Retrieval Augmented Genera
 **Main technologies:**
 - **Backend**: Python 3.11+ with aiohttp web framework
 - **Frontend**: React with TypeScript, built with Vite
-- **Infrastructure**: Azure Bicep templates for Azure Container Apps deployment
-- **Key Azure Services**: Azure OpenAI (GPT-4o Realtime API), Azure AI Search, Azure Container Apps
+- **Infrastructure**: Azure Bicep templates for Azure App Service deployment
+- **Key Azure Services**: Azure OpenAI (GPT-4o Realtime API), Azure AI Search, Azure App Service
 - **Deployment**: Azure Developer CLI (azd)
 
 **Primary entry points:**
@@ -142,35 +142,40 @@ Install the required tools:
    ```
    Enter a name for your resource group.
 
-3. **(Optional) Customize deployment:**
-   
-   Before running `azd up`, you can configure:
-   - [Reuse existing Azure services](docs/existing_services.md)
-   - [Customize voice choice](docs/customizing_deploy.md)
-   
-   Example:
+3. **Configure environment variables:**
+
+   Before running `azd up`, set the azd environment values that describe your existing resources:
+
    ```bash
-   azd env set AZURE_OPENAI_REALTIME_VOICE_CHOICE shimmer
+   azd env set AZURE_RESOURCE_GROUP <RESOURCE_GROUP_WITH_APP_SERVICE>
+   azd env set AZURE_WEBAPP_NAME <APP_SERVICE_NAME>
+   azd env set AZURE_OPENAI_ENDPOINT https://<YOUR_OPENAI_RESOURCE>.openai.azure.com
+   azd env set AZURE_OPENAI_REALTIME_DEPLOYMENT <REALTIME_DEPLOYMENT_NAME>
+   azd env set AZURE_SEARCH_ENDPOINT https://<YOUR_SEARCH_RESOURCE>.search.windows.net
+   azd env set AZURE_SEARCH_INDEX <INDEX_NAME>
+   azd env set AZURE_TENANT_ID <YOUR_TENANT_ID>
    ```
 
-4. **Provision and deploy:**
+   Additional options, such as voice customization or search field mapping, are documented in [`docs/customizing_deploy.md`](docs/customizing_deploy.md) and [`docs/existing_services.md`](docs/existing_services.md).
+
+4. **Deploy to the existing infrastructure:**
    ```bash
    azd up
    ```
-   
-   This command will:
-   - Provision Azure resources (OpenAI, Search, Container Apps, etc.)
-   - Build and deploy the application container
-   - Setup integrated vectorization for sample data
-   
-   **Warning**: This will incur Azure costs. Run `azd down` to delete resources when done.
 
-5. **Update local .env file after deployment:**
-   
-   After `azd up` completes, synchronize local environment:
+   This command will:
+   - Verify that the referenced App Service exists
+   - Build and deploy the application package
+   - Apply configuration values to the App Service and regenerate `app/backend/.env`
+
+   **Warning**: Existing Azure resources continue to incur costs. Delete unused resources when finished.
+
+5. **Post-deployment:**
+
+   The `azd up` command automatically runs the `scripts/write_env` helper so the local environment stays in sync. You can retrieve the deployed URL any time with:
+
    ```bash
-   ./scripts/write_env.sh  # Linux/Mac
-   pwsh ./scripts/write_env.ps1  # Windows
+   azd env get-value BACKEND_URI
    ```
 
 ## Running the tests
@@ -246,29 +251,30 @@ npm test
 
 ### Azure deployment with azd
 
-The primary deployment method is Azure Developer CLI (azd):
+The primary deployment method is Azure Developer CLI (azd). The command expects an existing App Service, Azure OpenAI resource, and Azure AI Search service:
 
 ```bash
-azd up  # Provision infrastructure and deploy application
+azd up  # Deploy application to existing infrastructure
 ```
+
+Before running `azd up`, configure the azd environment with values such as `AZURE_RESOURCE_GROUP`, `AZURE_WEBAPP_NAME`, `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_REALTIME_DEPLOYMENT`, `AZURE_SEARCH_ENDPOINT`, and `AZURE_SEARCH_INDEX`.
 
 Key deployment files:
 - `azure.yaml` - Defines azd configuration and hooks
 - `infra/main.bicep` - Infrastructure as Code template
-- `app/Dockerfile` - Container image definition
+- `scripts/build_frontend.sh` / `scripts/build_frontend.ps1` - Build frontend assets before deployment
 
 ### Post-provision hooks
 
-After infrastructure provisioning, azd automatically runs:
-- `scripts/write_env.sh` / `scripts/write_env.ps1` - Generate .env file
-- `scripts/setup_intvect.sh` / `scripts/setup_intvect.ps1` - Setup integrated vectorization
+After deployment completes, azd automatically runs:
+- `scripts/write_env.sh` / `scripts/write_env.ps1` - Generate `.env` file for local development
 
-### Container deployment
+### App Service deployment
 
-The app is deployed to Azure Container Apps. The build happens via:
-- Remote build on Azure (configured in `azure.yaml`)
-- Container registry created during deployment
-- Image built from `app/Dockerfile`
+The app is deployed to Azure App Service (Linux). Deployment happens via:
+- Zip deploy from the backend project directory orchestrated by `azd`
+- Frontend assets built by the deployment hooks and placed in `app/backend/static`
+- Gunicorn configured as the startup command via App Service settings
 
 ### CI/CD workflows
 
@@ -333,7 +339,7 @@ npm run format
 3. **Node.js dependencies**: Run `npm install` in `app/frontend/` before building
 4. **Frontend build**: Frontend builds into `app/backend/static/` directory
 5. **Port conflicts**: Backend runs on port 8765 by default
-6. **Azure costs**: Resources incur costs immediately after `azd up`. Clean up with `azd down`
+6. **Azure costs**: Existing Azure resources continue to incur costs even though `azd up` no longer provisions them. Clean up or deallocate unused resources when finished
 7. **Real-time API availability**: GPT-4o realtime API is only available in specific regions (eastus2, swedencentral)
 8. **WebSocket proxy**: Frontend dev server proxies `/realtime` to `ws://localhost:8765`
 

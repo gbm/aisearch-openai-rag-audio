@@ -30,7 +30,7 @@ The `RTClient` in the frontend receives the audio input, sends that to the Pytho
 
 ![Diagram of real-time RAG pattern](docs/RTMTPattern.png)
 
-This repository includes infrastructure as code and a `Dockerfile` to deploy the app to Azure Container Apps, but it can also be run locally as long as Azure AI Search and Azure OpenAI services are configured.
+This repository includes infrastructure as code to deploy the app to an existing Azure App Service (Linux). The Bicep template no longer provisions new Azure resources, so you must supply your own Azure OpenAI, Azure AI Search, and App Service instances. The app can also run locally with the same configuration values supplied through a `.env` file.
 
 ## Getting Started
 
@@ -70,7 +70,13 @@ You can run the project in your local VS Code Dev Container using the [Dev Conta
 
 ## Deploying the app
 
-The steps below will provision Azure resources and deploy the application code to Azure Container Apps.
+The steps below assume that you already have the required Azure resources. At minimum you need:
+
+* An Azure App Service (Linux) plan with a Web App that will host the backend.
+* An Azure OpenAI resource with a real-time deployment available.
+* An Azure AI Search service with an index containing the content you want to ground the model with.
+
+If these resources do not exist yet, create or reuse them before continuing. The [`docs/manual_setup.md`](docs/manual_setup.md) guide lists the required Azure services and offers tips for preparing an Azure AI Search index.
 
 1. Login to your Azure account:
 
@@ -93,18 +99,29 @@ The steps below will provision Azure resources and deploy the application code t
     Enter a name that will be used for the resource group.
     This will create a new folder in the `.azure` folder, and set it as the active environment for any calls to `azd` going forward.
 
-1. (Optional) This is the point where you can customize the deployment by setting azd environment variables, in order to [use existing services](docs/existing_services.md) or [customize the voice choice](docs/customizing_deploy.md).
+1. Configure the azd environment with the details of your existing resources:
 
-1. Run this single command to provision the resources, deploy the code, and setup integrated vectorization for the sample data:
+   ```shell
+   azd env set AZURE_RESOURCE_GROUP <RESOURCE_GROUP_WITH_APP_SERVICE>
+   azd env set AZURE_WEBAPP_NAME <APP_SERVICE_NAME>
+   azd env set AZURE_OPENAI_ENDPOINT https://<YOUR_OPENAI_RESOURCE>.openai.azure.com
+   azd env set AZURE_OPENAI_REALTIME_DEPLOYMENT <REALTIME_DEPLOYMENT_NAME>
+   azd env set AZURE_SEARCH_ENDPOINT https://<YOUR_SEARCH_RESOURCE>.search.windows.net
+   azd env set AZURE_SEARCH_INDEX <INDEX_NAME>
+   azd env set AZURE_TENANT_ID <YOUR_TENANT_ID>
+   ```
+
+   Additional optional environment variables that control search field mapping or voice selection are described in [`docs/existing_services.md`](docs/existing_services.md) and [`docs/customizing_deploy.md`](docs/customizing_deploy.md).
+
+1. Run this command to deploy the application to the existing App Service and sync a local `.env` file:
 
    ```shell
    azd up
    ````
 
-   * **Important**: Beware that the resources created by this command will incur immediate costs, primarily from the AI Search resource. These resources may accrue costs even if you interrupt the command before it is fully executed. You can run `azd down` or delete the resources manually to avoid unnecessary spending.
-   * You will be prompted to select two locations, one for the majority of resources and one for the OpenAI resource, which is currently a short list. That location list is based on the [OpenAI model availability table](https://learn.microsoft.com/azure/ai-services/openai/concepts/models#global-standard-model-availability) and may become outdated as availability changes.
+   * **Important**: This command does not create infrastructure. It assumes the App Service and supporting resources already exist and will fail if they cannot be found. The command uploads the backend package, sets App Service configuration values, and writes a `.env` file locally using the values from the azd environment.
 
-1. After the application has been successfully deployed you will see a URL printed to the console.  Navigate to that URL to interact with the app in your browser. To try out the app, click the "Start conversation button", say "Hello", and then ask a question about your data like "What is the whistleblower policy for Contoso electronics?" You can also now run the app locally by following the instructions in [the next section](#development-server).
+1. After the application has been successfully deployed you will see a URL printed to the console (you can also retrieve it with `azd env get-value BACKEND_URI`). Navigate to that URL to interact with the app in your browser. To try out the app, click the "Start conversation" button, say "Hello", and then ask a question about your data like "What is the whistleblower policy for Contoso electronics?" You can also now run the app locally by following the instructions in [the next section](#development-server).
 
 ## Development server
 
@@ -154,7 +171,7 @@ You can run this app locally using either the Azure services you provisioned by 
 Pricing varies per region and usage, so it isn't possible to predict exact costs for your usage.
 However, you can try the [Azure pricing calculator](https://azure.com/e/a87a169b256e43c089015fda8182ca87) for the resources below.
 
-* Azure Container Apps: Consumption plan with 1 CPU core, 2.0 GB RAM. Pricing with Pay-as-You-Go. [Pricing](https://azure.microsoft.com/pricing/details/container-apps/)
+* Azure App Service (Linux): Premium v3 plan (P1v3 by default). Pricing varies by tier. [Pricing](https://azure.microsoft.com/pricing/details/app-service/linux/)
 * Azure OpenAI: Standard tier, gpt-4o-realtime and text-embedding-3-large models. Pricing per 1K tokens used. [Pricing](https://azure.microsoft.com/pricing/details/cognitive-services/openai-service/)
 * Azure AI Search: Standard tier, 1 replica, free level of semantic search. Pricing per hour. [Pricing](https://azure.microsoft.com/pricing/details/search/)
 * Azure Blob Storage: Standard tier with ZRS (Zone-redundant storage). Pricing per storage and read operations. [Pricing](https://azure.microsoft.com/pricing/details/storage/blobs/)
