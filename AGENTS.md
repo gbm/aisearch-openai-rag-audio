@@ -31,12 +31,10 @@ VoiceRAG is an application pattern demonstrating RAG (Retrieval Augmented Genera
     - `app/frontend/src/` - Source code for React components
     - `app/frontend/src/locales/` - Translation files (en, es, fr, ja)
     - `app/frontend/package.json` - Node.js dependencies
-    - `app/frontend/vite.config.ts` - Vite build configuration
-  - `app/Dockerfile` - Container image definition for deployment
+   - `app/frontend/vite.config.ts` - Vite build configuration
 - `infra/` - Bicep infrastructure-as-code templates
   - `infra/main.bicep` - Main infrastructure definition
-  - `infra/main.parameters.json` - Template parameters
-  - `infra/core/` - Reusable Bicep modules
+   - `infra/main.parameters.json` - Template parameters
 - `scripts/` - Helper scripts for development and deployment
   - `scripts/start.sh` / `scripts/start.ps1` - Start development server
   - `scripts/write_env.sh` / `scripts/write_env.ps1` - Generate .env file from azd
