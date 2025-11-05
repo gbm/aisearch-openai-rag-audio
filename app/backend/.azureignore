@@ -1,0 +1,3 @@
+# Allow packaging of locally restored Python dependencies
+!.python_packages/
+!.python_packages/**

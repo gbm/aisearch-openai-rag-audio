@@ -1,7 +1,6 @@
 # VoiceRAG: An Application Pattern for RAG + Voice Using Azure AI Search and the GPT-4o Realtime API for Audio
 
-[![Open in GitHub Codespaces](https://img.shields.io/static/v1?style=for-the-badge&label=GitHub+Codespaces&message=Open&color=brightgreen&logo=github)](https://github.com/codespaces/new?hide_repo_select=true&ref=main&skip_quickstart=true&machine=basicLinux32gb&repo=860141324&devcontainer_path=.devcontainer%2Fdevcontainer.json&geo=WestUs2)
-[![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/Azure-Samples/aisearch-openai-rag-audio)
+
 
 This repo contains an example of how to implement RAG support in applications that use voice as their user interface, powered by the GPT-4o realtime API for audio. We describe the pattern in more detail in [this blog post](https://aka.ms/voicerag), and you can see this sample app in action in [this short video](https://youtu.be/vXJka8xZ9Ko).
 
@@ -34,26 +33,6 @@ This repository includes infrastructure as code to deploy the app to an existing
 
 ## Getting Started
 
-You have a few options for getting started with this template. The quickest way to get started is [GitHub Codespaces](#github-codespaces), since it will setup all the tools for you, but you can also [set it up locally](#local-environment). You can also use a [VS Code dev container](#vs-code-dev-containers)
-
-### GitHub Codespaces
-
-You can run this repo virtually by using GitHub Codespaces, which will open a web-based VS Code in your browser:
-
-[![Open in GitHub Codespaces](https://img.shields.io/static/v1?style=for-the-badge&label=GitHub+Codespaces&message=Open&color=brightgreen&logo=github)](https://github.com/codespaces/new?hide_repo_select=true&ref=main&skip_quickstart=true&machine=basicLinux32gb&repo=860141324&devcontainer_path=.devcontainer%2Fdevcontainer.json&geo=WestUs2)
-
-Once the codespace opens (this may take several minutes), open a new terminal and proceed to [deploy the app](#deploying-the-app).
-
-### VS Code Dev Containers
-
-You can run the project in your local VS Code Dev Container using the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers):
-
-1. Start Docker Desktop (install it if not already installed)
-2. Open the project:
-
-    [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/azure-samples/aisearch-openai-rag-audio)
-3. In the VS Code window that opens, once the project files show up (this may take several minutes), open a new terminal, and proceed to [deploying the app](#deploying-the-app).
-
 ### Local environment
 
 1. Install the required tools:
@@ -84,11 +63,6 @@ If these resources do not exist yet, create or reuse them before continuing. The
     azd auth login
     ```
 
-    For GitHub Codespaces users, if the previous command fails, try:
-
-   ```shell
-    azd auth login --use-device-code
-    ```
 
 1. Create a new azd environment:
 
@@ -102,6 +76,13 @@ If these resources do not exist yet, create or reuse them before continuing. The
 1. Configure the azd environment with the details of your existing resources:
 
    ```shell
+   azd env set AZURE_RESOURCE_GROUP rg-devtest-1
+   azd env set AZURE_WEBAPP_NAME devtest-1-webapp 
+   azd env set AZURE_OPENAI_ENDPOINT https://devtest-1-resource.openai.azure.com
+   azd env set AZURE_OPENAI_REALTIME_DEPLOYMENT gpt-realtime
+   azd env set AZURE_SEARCH_ENDPOINT https://devtest-1-ai-search.search.windows.net
+   azd env set AZURE_SEARCH_INDEX rag-1761216185868
+
    azd env set AZURE_RESOURCE_GROUP <RESOURCE_GROUP_WITH_APP_SERVICE>
    azd env set AZURE_WEBAPP_NAME <APP_SERVICE_NAME>
    azd env set AZURE_OPENAI_ENDPOINT https://<YOUR_OPENAI_RESOURCE>.openai.azure.com
